@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Donor Dashboard – BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+<style>
+.avail-card{background:var(--red-light);border:1.5px solid rgba(232,25,44,0.2);border-radius:14px;padding:18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.notif-item{display:flex;align-items:flex-start;gap:12px;padding:13px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--white);}
+.notif-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.notif-icon.alert{background:rgba(232,25,44,0.1);}
+.notif-icon.ok{background:rgba(22,163,74,0.1);}
+.respond-btns{display:flex;gap:8px;margin-top:8px;}
+.sched-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px;}
+.sched-day{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;transition:all 0.15s;}
+.sched-day.on{background:rgba(22,163,74,0.12);border-color:var(--green);color:var(--green);}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-logo" href="../index.html">Blood<span>Link</span></a>
+  <div class="nav-links">
+    <span id="nav-name" style="font-size:13px;color:var(--muted);margin-right:6px"></span>
+    <span class="badge badge-green" style="margin-right:6px">Donor</span>
+    <button class="nav-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="app-layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <button class="sidebar-item active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+    <button class="sidebar-item" onclick="switchTab('notifications',this)">🔔 Notifications <span id="notif-count" class="badge badge-red" style="margin-left:auto;font-size:10px">0</span></button>
+    <button class="sidebar-item" onclick="switchTab('history',this)">📋 Donation History</button>
+    <button class="sidebar-item" onclick="switchTab('profile',this)">👤 My Profile</button>
+    <button class="sidebar-item" onclick="switchTab('schedule',this)">📅 Availability Schedule</button>
+    <button class="sidebar-item" onclick="location.href='../map.html'">🗺️ Donor Map</button>
+  </div>
+
+  <div class="main-content">
+    <!-- DASHBOARD TAB -->
+    <div class="section" id="tab-dashboard">
+      <div class="section-header">
+        <div class="section-title" id="welcome-title">Welcome back</div>
+        <div class="section-sub">Your donor portal — manage availability and see your impact</div>
+      </div>
+
+      <!-- Availability -->
+      <div class="avail-card">
+        <div>
+          <div style="font-weight:700;font-size:16px">Availability Status</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px" id="avail-label">You are currently available to donate</div>
+        </div>
+        <div class="toggle-wrap">
+          <button class="toggle on" id="avail-toggle" onclick="toggleAvail()"></button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat-card" style="--accent:#e8192c"><div class="val" id="s-donations">0</div><div class="lbl">Total Donations</div></div>
+        <div class="stat-card" style="--accent:#d97706"><div class="val" id="s-points">50</div><div class="lbl">Reward Points</div><div class="delta">+100 per donation</div></div>
+        <div class="stat-card" style="--accent:#2563eb"><div class="val" id="s-rank">#–</div><div class="lbl">Network Rank</div></div>
+        <div class="stat-card" style="--accent:#16a34a"><div class="val" id="s-streak">0</div><div class="lbl">Donation Streak</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <!-- Matching requests -->
+          <div class="card mb-16" style="margin-bottom:16px">
+            <div class="card-title"><span class="dot"></span> Requests Matching Your Blood Group</div>
+            <div id="matching-requests">
+              <div class="empty-state"><div class="icon">🩸</div><p>No matching requests right now.<br>You will be notified when one arrives.</p></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <!-- Eligibility -->
+          <div class="card mb-16" style="margin-bottom:16px">
+            <div class="card-title"><span class="dot" style="background:var(--green)"></span> Eligibility Status</div>
+            <div id="eligibility-card"></div>
+          </div>
+          <!-- Rewards -->
+          <div class="card">
+            <div class="card-title"><span class="dot" style="background:var(--amber)"></span> Rewards & Badges</div>
+            <div id="badges-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+            <div style="font-size:12px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between"><span>🎁 Registration</span><span class="badge badge-amber">+50 pts</span></div>
+              <div style="display:flex;justify-content:space-between"><span>🩸 Each donation</span><span class="badge badge-amber">+100 pts</span></div>
+              <div style="display:flex;justify-content:space-between"><span>⚡ Emergency response</span><span class="badge badge-amber">+75 pts</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div class="section" id="tab-notifications" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Notifications</div>
+        <div class="section-sub">Blood requests matching your profile</div>
+      </div>
+      <div id="notif-list">
+        <div class="empty-state"><div class="icon">🔔</div><p>No notifications yet.</p></div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="section" id="tab-history" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Donation History</div>
+      </div>
+      <div id="history-list">
+        <div class="empty-state"><div class="icon">📋</div><p>No donation records yet.</p></div>
+      </div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div class="section" id="tab-profile" style="display:none">
+      <div class="section-header">
+        <div class="section-title">My Profile</div>
+      </div>
+      <div class="grid-half">
+        <div class="card">
+          <div id="profile-fields"></div>
+          <button class="btn btn-primary btn-full" style="margin-top:16px" onclick="saveProfile()">Save Changes</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Update Location</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Keep your GPS location updated so the system can accurately match you to nearby requests.</p>
+          <button class="btn btn-outline btn-full" onclick="updateLocation()">📍 Update My Location</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div class="section" id="tab-schedule" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Availability Schedule</div>
+        <div class="section-sub">Set the days you are available to donate each week</div>
+      </div>
+      <div class="card" style="max-width:500px">
+        <div class="sched-grid" id="sched-grid"></div>
+        <button class="btn btn-primary btn-full" style="margin-top:16px" onclick="saveSchedule()">Save Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+// ── Auth guard ────────────────────────────────────────
+if (!isLoggedIn() || getRole() !== 'donor') location.href = '../login.html';
+const user = getUser();
+document.getElementById('nav-name').textContent = user?.name || '';
+document.getElementById('welcome-title').textContent = 'Welcome, ' + (user?.name?.split(' ')[0] || 'Donor');
+
+// ── Tab switching ─────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section[id^="tab-"]').forEach(s => s.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'notifications') loadNotifications();
+  if (tab === 'history')       loadHistory();
+  if (tab === 'profile')       renderProfile();
+  if (tab === 'schedule')      renderSchedule();
+}
+
+// ── Availability toggle ───────────────────────────────
+let isAvailable = user?.availability_status !== false;
+const toggleEl  = document.getElementById('avail-toggle');
+const labelEl   = document.getElementById('avail-label');
+
+function setToggle(val) {
+  isAvailable = val;
+  toggleEl.className = 'toggle ' + (val ? 'on' : 'off');
+  
+  const lastD = getUser()?.last_donation_date;
+  const daysSince = lastD ? Math.floor((Date.now() - new Date(lastD)) / 86400000) : 999;
+  
+  if (daysSince < 90) {
+    labelEl.innerHTML = `<span style="color:var(--red);font-weight:600;">You have recently donated blood. You can donate again after ${90 - daysSince} days.</span>`;
+    toggleEl.style.opacity = '0.5';
+    toggleEl.style.pointerEvents = 'none';
+  } else {
+    labelEl.textContent = val ? 'You are currently available to donate' : 'You are currently unavailable';
+    toggleEl.style.opacity = '1';
+    toggleEl.style.pointerEvents = 'auto';
+  }
+}
+setToggle(isAvailable);
+
+async function toggleAvail() {
+  setToggle(!isAvailable);
+  try { await DonorAPI.setAvailability(isAvailable); showToast(isAvailable ? 'Marked as available' : 'Marked as unavailable', 'success'); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+// ── Stats ─────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const profile = await DonorAPI.getProfile();
+    document.getElementById('s-donations').textContent = 0;
+    document.getElementById('s-points').textContent    = profile.points || 50;
+    renderEligibility(profile);
+    renderBadges(profile.points || 50);
+    loadMatchingRequests(profile.blood_group);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function loadMatchingRequests(bloodGroup) {
+  try {
+    const requests = await RequestAPI.getAll();
+    const myGroup = bloodGroup;
+    const compatible = {
+      'A+':['A+','A-','O+','O-'], 'A-':['A-','O-'],
+      'B+':['B+','B-','O+','O-'], 'B-':['B-','O-'],
+      'AB+':['A+','A-','B+','B-','AB+','AB-','O+','O-'], 'AB-':['A-','B-','AB-','O-'],
+      'O+':['O+','O-'], 'O-':['O-']
+    };
+    const canGiveTo = compatible[myGroup] || [myGroup];
+    const matching = requests.filter(r => canGiveTo.includes(r.blood_group) && r.status === 'open');
+    
+    const el = document.getElementById('matching-requests');
+    if (!matching.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">🩸</div><p>No matching requests right now.<br>You will be notified when one arrives.</p></div>';
+      return;
+    }
+    el.innerHTML = matching.slice(0, 5).map(r => `
+      <div class="list-item">
+        <div class="blood-pill">${r.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${r.patient_name || 'Unknown'} · ${r.units_needed} unit(s)</div>
+          <div class="meta">📍 ${r.address || 'N/A'} · ${r.urgency_level}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('Matching requests error:', e); }
+}
+
+function renderEligibility(profile) {
+  const lastD    = profile.last_donation_date;
+  const daysSince = lastD ? Math.floor((Date.now() - new Date(lastD)) / 86400000) : 999;
+  const pct      = Math.min(100, Math.round((daysSince / 90) * 100));
+  const eligible = daysSince >= 90;
+  document.getElementById('eligibility-card').innerHTML = `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span>Days since last donation</span>
+        <strong>${daysSince > 365 ? 'Never donated' : daysSince + ' days'}</strong>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${eligible ? 'var(--green)' : 'var(--amber)'}"></div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${eligible ? '✅ Fully eligible' : 'Need ' + (90 - daysSince) + ' more days'}</div>
+    </div>
+    <span class="badge ${eligible ? 'badge-green' : 'badge-amber'}">${eligible ? '✅ Eligible to donate' : '⏰ 3-Month Cooldown'}</span>`;
+  
+  // Re-sync toggle based on eligibility
+  setToggle(profile.availability_status && eligible);
+}
+
+function renderBadges(points) {
+  const badges = [];
+  if (points >= 50)   badges.push({icon:'🌟', name:'Newcomer'});
+  if (points >= 150)  badges.push({icon:'💪', name:'Active Donor'});
+  if (points >= 300)  badges.push({icon:'🏆', name:'Champion'});
+  document.getElementById('badges-wrap').innerHTML = badges.map(b =>
+    `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center">
+      <div style="font-size:20px">${b.icon}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">${b.name}</div>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--muted)">Earn badges by donating!</p>';
+}
+
+// ── Notifications ─────────────────────────────────────
+let lastNotifCount = 0;
+
+async function loadNotifications() {
+  try {
+    const data = await DonorAPI.getNotifications();
+    const unread = data.filter(n => n.status === 'unread' || n.status === 'sent').length;
+    document.getElementById('notif-count').textContent = unread;
+    
+    // Show popup for new notifications
+    if (lastNotifCount > 0 && unread > lastNotifCount) {
+      showToast('🩸 You have new notifications!', 'success');
+    }
+    lastNotifCount = unread;
+    
+    const el = document.getElementById('notif-list');
+    if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🔔</div><p>No notifications yet.</p></div>'; return; }
+    el.innerHTML = data.map(n => `
+      <div class="notif-item">
+        <div class="notif-icon ${n.donor_response === 'pending' ? 'alert' : 'ok'}">${n.donor_response === 'pending' ? '🩸' : '✅'}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px;white-space:pre-wrap;">${n.message}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">${n.createdAt ? new Date(n.createdAt).toLocaleString() : 'Just now'}</div>
+          ${n.donor_response === 'pending' && n.request_id ? `
+            <div class="respond-btns">
+              <button class="btn btn-green btn-sm" onclick="respond('${n.request_id}','accepted')">✓ Accept</button>
+              <button class="btn btn-secondary btn-sm" onclick="respond('${n.request_id}','declined')">✗ Decline</button>
+            </div>` : `<span class="badge ${n.donor_response === 'accepted' ? 'badge-green' : 'badge-amber'}">${n.donor_response}</span>`}
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('Notification error:', e); }
+}
+
+// Auto-refresh notifications every 10 seconds
+setInterval(loadNotifications, 10000);
+loadNotifications();
+
+async function respond(reqId, response) {
+  try {
+    await DonorAPI.respondRequest(reqId, response);
+    showToast(response === 'accepted' ? '✅ Accepted! You are now marked as unavailable.' : 'Declined.', 'success');
+    loadNotifications();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ── History ───────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const data = await DonorAPI.getHistory();
+    document.getElementById('s-donations').textContent = data.length;
+    const el = document.getElementById('history-list');
+    if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No donation records yet.</p></div>'; return; }
+    el.innerHTML = data.map(h => `
+      <div class="list-item">
+        <div class="blood-pill">${h.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${h.hospital_name || 'Hospital'} · ${h.units} unit(s)</div>
+          <div class="meta">📅 ${h.donated_on}</div>
+        </div>
+        <span class="badge ${h.status === 'completed' ? 'badge-green' : 'badge-amber'}">${h.status}</span>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── Profile ───────────────────────────────────────────
+function renderProfile() {
+  const u = getUser() || {};
+  document.getElementById('profile-fields').innerHTML = `
+    <div class="form-group"><label>Full Name</label><input id="p-name" value="${u.name||''}"/></div>
+    <div class="form-group"><label>Mobile Number</label><input id="p-mobile" value="${u.mobile_number||''}"/></div>
+    <div class="form-group"><label>City</label><input id="p-city" value="${u.city||''}"/></div>
+    <div class="form-group"><label>Age</label><input id="p-age" type="number" value="${u.age||''}"/></div>`;
+}
+
+async function saveProfile() {
+  try {
+    const data = { name: document.getElementById('p-name').value, mobile_number: document.getElementById('p-mobile').value, city: document.getElementById('p-city').value, age: document.getElementById('p-age').value };
+    const res  = await DonorAPI.updateProfile(data);
+    saveSession(getToken(), 'donor', res);
+    showToast('Profile updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) reject(new Error('Geolocation not supported'));
+    navigator.geolocation.getCurrentPosition(resolve, reject);
+  });
+}
+
+async function updateLocation() {
+  try {
+    const pos = await getCurrentPosition();
+    await DonorAPI.updateLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    showToast('📍 Location updated!', 'success');
+  } catch(e) { showToast('Could not get location. Enable GPS.', 'error'); }
+}
+
+// ── Schedule ──────────────────────────────────────────
+const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+let schedule = JSON.parse(localStorage.getItem('bl_schedule') || '[true,true,false,true,true,false,false]');
+
+function renderSchedule() {
+  document.getElementById('sched-grid').innerHTML = days.map((d, i) => `
+    <div class="sched-day ${schedule[i] ? 'on' : ''}" onclick="toggleDay(${i},this)">
+      <div style="font-weight:600">${d}</div>
+      <div style="margin-top:3px">${schedule[i] ? '✓' : '–'}</div>
+    </div>`).join('');
+}
+
+function toggleDay(i, el) {
+  schedule[i] = !schedule[i];
+  el.className = 'sched-day ' + (schedule[i] ? 'on' : '');
+  el.children[1].textContent = schedule[i] ? '✓' : '–';
+}
+
+function saveSchedule() {
+  localStorage.setItem('bl_schedule', JSON.stringify(schedule));
+  showToast('Schedule saved!', 'success');
+}
+
+// ── Logout ────────────────────────────────────────────
+function logout() { clearSession(); location.href = '../login.html'; }
+
+// ── Toast ─────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── Init ──────────────────────────────────────────────
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Dashboard – BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+<style>
+.verify-row{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--white);}
+.verify-row .info{flex:1;}
+.verify-row .info .name{font-weight:600;font-size:13px;}
+.verify-row .info .meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.verify-actions{display:flex;gap:8px;}
+.chart-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+.chart-bar-bg{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.chart-bar-fill{height:100%;border-radius:4px;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-logo" href="../index.html">Blood<span>Link</span></a>
+  <div class="nav-links">
+    <span class="badge badge-red" style="margin-right:6px">Admin</span>
+    <button class="nav-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="app-layout">
+  <div class="sidebar">
+    <button class="sidebar-item active" onclick="switchTab('dashboard',this)">📊 Overview</button>
+    <button class="sidebar-item" onclick="switchTab('verify',this)">🛡️ Verifications <span id="pending-count" class="badge badge-red" style="margin-left:auto;font-size:10px">0</span></button>
+    <button class="sidebar-item" onclick="switchTab('donors',this)">👥 All Donors</button>
+    <button class="sidebar-item" onclick="switchTab('requests',this)">🩸 All Requests</button>
+    <button class="sidebar-item" onclick="switchTab('analytics',this)">📈 Analytics</button>
+    <button class="sidebar-item" onclick="location.href='../map.html'">🗺️ Network Map</button>
+  </div>
+
+  <div class="main-content">
+    <!-- OVERVIEW -->
+    <div class="section" id="tab-dashboard">
+      <div class="section-header">
+        <div class="section-title">Admin Control Centre</div>
+        <div class="section-sub">Network-wide overview and management</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:#e8192c"><div class="val" id="s-donors">–</div><div class="lbl">Total Donors</div><div class="delta" id="s-elig">0 eligible</div></div>
+        <div class="stat-card" style="--accent:#2563eb"><div class="val" id="s-hospitals">–</div><div class="lbl">Hospitals</div></div>
+        <div class="stat-card" style="--accent:#d97706"><div class="val" id="s-reqs">–</div><div class="lbl">Open Requests</div><div class="delta" id="s-crit">0 critical</div></div>
+        <div class="stat-card" style="--accent:#d97706"><div class="val" id="s-pending-v">–</div><div class="lbl">Pending Verifications</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Recent Blood Requests <span style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1.2s infinite;display:inline-block"></span></div>
+          <div id="live-requests">
+            <div class="empty-state"><div class="icon">🩸</div><p>No active requests.</p></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title"><span class="dot" style="background:var(--green)"></span> Blood Group Distribution</div>
+            <div id="blood-dist"></div>
+          </div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title"><span class="dot" style="background:var(--amber)"></span> Network-wide Match Alerts 🚨</div>
+            <div id="match-alerts" style="max-height: 200px; overflow-y: auto;">
+              <div class="empty-state" style="padding:10px"><p style="font-size:12px">No match alerts recorded.</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot" style="background:var(--amber)"></span> Top Donors 🏆</div>
+            <div id="top-donors"><div class="empty-state" style="padding:14px"><p style="font-size:12px">No donors yet.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VERIFICATIONS -->
+    <div class="section" id="tab-verify" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Verification Panel</div>
+        <div class="section-sub">Review and approve/reject donor and hospital registrations</div>
+      </div>
+      <h3 style="margin-bottom:12px">Pending Donors</h3>
+      <div id="pending-donors"><div class="empty-state"><div class="icon">👤</div><p>No pending donors.</p></div></div>
+      <h3 style="margin:20px 0 12px">Pending Hospitals</h3>
+      <div id="pending-hospitals"><div class="empty-state"><div class="icon">🏥</div><p>No pending hospitals.</p></div></div>
+    </div>
+
+    <!-- ALL DONORS -->
+    <div class="section" id="tab-donors" style="display:none">
+      <div class="section-header flex" style="display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="section-title">All Donors</div></div>
+        <div style="display:flex;gap:8px">
+          <select id="filter-blood" onchange="loadAllDonors()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;">
+            <option value="">All Groups</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          </select>
+          <select id="filter-status" onchange="loadAllDonors()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div id="all-donors-list"><div class="empty-state"><div class="icon">👥</div><p>No donors found.</p></div></div>
+    </div>
+
+    <!-- ALL REQUESTS -->
+    <div class="section" id="tab-requests" style="display:none">
+      <div class="section-header"><div class="section-title">All Blood Requests</div></div>
+      <div id="all-requests-list"><div class="empty-state"><div class="icon">🩸</div><p>No requests.</p></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="tab-analytics" style="display:none">
+      <div class="section-header"><div class="section-title">Analytics</div></div>
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="card" style="text-align:center"><div style="font-size:36px;font-weight:700;color:var(--green)">8 min</div><div style="font-size:12px;color:var(--muted)">Avg Response Time</div></div>
+        <div class="card" style="text-align:center"><div style="font-size:36px;font-weight:700;color:var(--blue)">87%</div><div style="font-size:12px;color:var(--muted)">Fulfillment Rate</div></div>
+        <div class="card" style="text-align:center"><div style="font-size:36px;font-weight:700;color:var(--amber)">94%</div><div style="font-size:12px;color:var(--muted)">Critical Cases Resolved &lt;1hr</div></div>
+      </div>
+      <div class="grid-half">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Blood Group Demand (Last 30 Days)</div>
+          <div id="demand-chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--blue)"></span> Monthly Donation Trend</div>
+          <div id="trend-chart" style="display:flex;align-items:flex-end;gap:6px;height:90px;padding-bottom:18px;margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<style>@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}</style>
+<script src="../js/api.js"></script>
+<script>
+if (!isLoggedIn() || getRole() !== 'admin') location.href = '../login.html';
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section[id^="tab-"]').forEach(s => s.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'verify')    loadPending();
+  if (tab === 'donors')    loadAllDonors();
+  if (tab === 'requests')  loadAllRequests();
+  if (tab === 'analytics') renderAnalytics();
+}
+
+// ── Overview ──────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const s = await AdminAPI.getStats();
+    document.getElementById('s-donors').textContent    = s.total_donors;
+    document.getElementById('s-elig').textContent      = s.available_donors + ' eligible';
+    document.getElementById('s-hospitals').textContent = s.total_hospitals;
+    document.getElementById('s-reqs').textContent      = s.open_requests;
+    document.getElementById('s-crit').textContent      = s.critical_requests + ' critical';
+    document.getElementById('s-pending-v').textContent = s.pending_donors + s.pending_hospitals;
+    document.getElementById('pending-count').textContent = s.pending_donors + s.pending_hospitals;
+
+    const reqs = await AdminAPI.getAllRequests();
+    renderLiveRequests(reqs.slice(0, 5));
+    loadNotifications();
+  } catch(e) { showToast('Failed to load stats: ' + e.message, 'error'); }
+}
+
+async function loadNotifications() {
+  try {
+    const alerts = await AdminAPI.getNotifications();
+    const el = document.getElementById('match-alerts');
+    if (!alerts.length) { el.innerHTML = '<div class="empty-state" style="padding:10px"><p style="font-size:12px">No match alerts yet.</p></div>'; return; }
+    el.innerHTML = alerts.map(a => `
+      <div style="padding:10px; border-bottom:1px solid var(--border); font-size:11px;">
+        <div style="font-weight:700; color:var(--red); margin-bottom:2px;">✅ Blood Request Matched</div>
+        <div style="color:var(--text); line-height:1.4;">${a.message}</div>
+        <div style="font-size:10px; color:var(--muted); margin-top:4px;">${new Date(a.createdAt).toLocaleString()}</div>
+      </div>`).join('');
+  } catch(e) { console.error('Failed to load notifications', e); }
+}
+
+function renderLiveRequests(reqs) {
+  const el = document.getElementById('live-requests');
+  if (!reqs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🩸</div><p>No requests.</p></div>'; return; }
+  el.innerHTML = reqs.map(r => `
+    <div class="list-item">
+      <div class="blood-pill">${r.blood_group}</div>
+      <div class="item-info">
+        <div class="name">${r.patient_name || 'Unknown'} · ${r.units_needed} unit(s)</div>
+        <div class="meta">📅 ${r.created_at?.slice(0,16)} · ${r.address || '–'}</div>
+      </div>
+      <span class="badge ${r.urgency_level === 'critical' ? 'badge-red' : r.urgency_level === 'high' ? 'badge-amber' : 'badge-green'}">${r.urgency_level}</span>
+      <span class="badge ${r.status === 'fulfilled' ? 'badge-green' : 'badge-blue'}" style="margin-left:6px">${r.status}</span>
+    </div>`).join('');
+}
+
+// ── Verifications ─────────────────────────────────────
+async function loadPending() {
+  try {
+    const data = await AdminAPI.getPending();
+    renderPendingDonors(data.pending_donors);
+    renderPendingHospitals(data.pending_hospitals);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function renderPendingDonors(donors) {
+  const el = document.getElementById('pending-donors');
+  if (!donors.length) { el.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No pending donors.</p></div>'; return; }
+  el.innerHTML = donors.map(d => {
+    // Note: In real app, you'd fetch the ProofVerification record separately or join it.
+    // For now, we'll assume the admin stats/pending API could be extended to include it.
+    return `
+    <div class="verify-row">
+      <div class="blood-pill">${d.blood_group}</div>
+      <div class="info">
+        <div class="name">${d.name} · ${d.blood_group} · Age ${d.age || '–'}</div>
+        <div class="meta">📞 ${d.mobile_number} · 📍 ${d.city || '–'}</div>
+        <div style="margin-top:5px;font-size:11px;display:flex;gap:10px;">
+          <span style="color:${d.id_proof_path?'var(--green)':'var(--red)'}">${d.id_proof_path ? '📄 ID Uploaded' : '❌ No ID'}</span>
+          <span id="ai-badge-${d._id}" class="badge badge-gray" style="font-size:9px">AI Checking...</span>
+        </div>
+      </div>
+      <div class="verify-actions">
+        ${d.id_proof_path ? `<button class="btn btn-blue btn-sm" onclick="viewDocument('${d.id_proof_path}')">👁️ View</button>` : ''}
+        <button class="btn btn-green btn-sm" onclick="verifyDonor('${d._id}','approved')">✓ Approve</button>
+        <button class="btn btn-secondary btn-sm" onclick="verifyDonor('${d._id}','rejected')">✗ Reject</button>
+      </div>
+    </div>`;
+  }).join('');
+  
+  // Try to load AI details for each donor
+  donors.forEach(async d => {
+    try {
+      const proofs = await AdminAPI.getProofs('pending');
+      const myProof = proofs.find(p => p.user_id === d._id);
+      if (myProof && myProof.ai_analysis) {
+        const ai = myProof.ai_analysis;
+        const badge = document.getElementById('ai-badge-' + d._id);
+        if (badge) {
+          badge.textContent = `AI: ${ai.is_valid ? '✅ Valid' : '❌ Fake'} (${ai.confidence_score}%)`;
+          badge.className = 'badge ' + (ai.is_valid ? 'badge-green' : 'badge-red');
+          badge.title = ai.checks?.fake_indicators?.join(', ') || 'No indicators';
+        }
+      } else if (document.getElementById('ai-badge-' + d._id)) {
+        document.getElementById('ai-badge-' + d._id).textContent = 'AI: No data';
+      }
+    } catch(e) {}
+  });
+}
+
+function renderPendingHospitals(hospitals) {
+  const el = document.getElementById('pending-hospitals');
+  if (!hospitals.length) { el.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No pending hospitals.</p></div>'; return; }
+  el.innerHTML = hospitals.map(h => `
+    <div class="verify-row">
+      <div style="width:42px;height:42px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏥</div>
+      <div class="info">
+        <div class="name">${h.name} · License: ${h.license_number || '–'}</div>
+        <div class="meta">📞 ${h.contact_number || '–'} · 📍 ${h.city || '–'}</div>
+        <div style="margin-top:5px;font-size:11px;display:flex;gap:10px;">
+          <span style="color:${h.license_proof_path?'var(--green)':'var(--red)'}">${h.license_proof_path ? '📄 License Uploaded' : '❌ No Proof'}</span>
+          <span id="ai-h-badge-${h._id}" class="badge badge-gray" style="font-size:9px">AI Checking...</span>
+        </div>
+      </div>
+      <div class="verify-actions">
+        ${h.license_proof_path ? `<button class="btn btn-blue btn-sm" onclick="viewDocument('${h.license_proof_path}')">👁️ View</button>` : ''}
+        <button class="btn btn-green btn-sm" onclick="verifyHospital('${h._id}','approved')">✓ Approve</button>
+        <button class="btn btn-secondary btn-sm" onclick="verifyHospital('${h._id}','rejected')">✗ Reject</button>
+      </div>
+    </div>`).join('');
+
+  hospitals.forEach(async h => {
+    try {
+      const proofs = await AdminAPI.getProofs('pending');
+      const myProof = proofs.find(p => p.user_id === h._id);
+      if (myProof && myProof.ai_analysis) {
+        const ai = myProof.ai_analysis;
+        const badge = document.getElementById('ai-h-badge-' + h._id);
+        if (badge) {
+          badge.textContent = `AI: ${ai.is_valid ? '✅ Valid' : '❌ Fake'} (${ai.confidence_score}%)`;
+          badge.className = 'badge ' + (ai.is_valid ? 'badge-green' : 'badge-red');
+        }
+      } else if (document.getElementById('ai-h-badge-' + h._id)) {
+        document.getElementById('ai-h-badge-' + h._id).textContent = 'AI: No data';
+      }
+    } catch(e) {}
+  });
+}
+
+async function verifyDonor(id, action) {
+  try { await AdminAPI.verifyDonor(id, action); showToast(`Donor ${action}!`, 'success'); loadPending(); loadOverview(); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+async function verifyHospital(id, action) {
+  try { await AdminAPI.verifyHospital(id, action); showToast(`Hospital ${action}!`, 'success'); loadPending(); loadOverview(); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+function viewDocument(filename) {
+  window.open('../uploads/' + filename, '_blank');
+}
+
+// ── All Donors ────────────────────────────────────────
+async function loadAllDonors() {
+  const status = document.getElementById('filter-status').value;
+  try {
+    const donors = await AdminAPI.getAllDonors(status);
+    const el     = document.getElementById('all-donors-list');
+    const bg     = document.getElementById('filter-blood').value;
+    const filtered = bg ? donors.filter(d => d.blood_group === bg) : donors;
+    if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div class="icon">👥</div><p>No donors found.</p></div>'; return; }
+    el.innerHTML = filtered.map(d => `
+      <div class="list-item">
+        <div class="blood-pill">${d.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${d.name} · ${d.mobile_number} <span style="font-size:10px;color:var(--muted)">ID: ${d._id}</span></div>
+          <div class="meta">📍 ${d.city || '–'} · Age ${d.age || '–'} · Points: ${d.points}</div>
+        </div>
+        <span class="badge ${d.availability_status ? 'badge-green' : 'badge-amber'}">${d.availability_status ? 'Available' : 'Unavailable'}</span>
+        <span class="badge ${d.verification_status === 'approved' ? 'badge-green' : d.verification_status === 'pending' ? 'badge-amber' : 'badge-red'}" style="margin-left:6px">${d.verification_status}</span>
+      </div>`).join('');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ── All Requests ──────────────────────────────────────
+async function loadAllRequests() {
+  try {
+    const reqs = await AdminAPI.getAllRequests();
+    const el   = document.getElementById('all-requests-list');
+    if (!reqs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🩸</div><p>No requests.</p></div>'; return; }
+    el.innerHTML = reqs.map(r => `
+      <div class="list-item">
+        <div class="blood-pill">${r.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${r.patient_name || '–'} · ${r.units_needed} unit(s) · ${r.urgency_level.toUpperCase()}</div>
+          <div class="meta">📍 ${r.address || '–'} · 📅 ${r.created_at?.slice(0,16)}</div>
+        </div>
+        <span class="badge ${r.status === 'fulfilled' ? 'badge-green' : r.status === 'open' ? 'badge-blue' : 'badge-gray'}">${r.status}</span>
+        ${r.status !== 'fulfilled' ? `<button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="openNotifyModal('${r._id}','${r.blood_group}')">📢 Notify</button>` : ''}
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function openNotifyModal(reqId, bg) {
+  const donorList = await AdminAPI.getAllDonors('approved');
+  const eligible = donorList.filter(d => d.blood_group === bg && d.availability_status);
+  
+  if (!eligible.length) { showToast('No eligible available donors found for ' + bg, 'amber'); return; }
+  
+  const ids = eligible.map(d => d._id);
+  const names = eligible.map(d => d.name).join(', ');
+  
+  if (confirm(`Send urgent notifications to ${eligible.length} donors (${names}) for this request?`)) {
+    try {
+      await AdminAPI.notifyDonors(reqId, ids);
+      showToast('Notifications sent successfully!', 'success');
+    } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+  }
+}
+
+// ── Analytics ─────────────────────────────────────────
+function renderAnalytics() {
+  const demand = {A:28,B:19,'O-':35,'O+':22,AB:12};
+  const max    = Math.max(...Object.values(demand));
+  document.getElementById('demand-chart').innerHTML = Object.entries(demand).map(([bg,v]) =>
+    `<div class="chart-bar">
+      <span style="min-width:28px;font-weight:700;color:var(--red)">${bg}</span>
+      <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${Math.round(v/max*100)}%;background:var(--red)"></div></div>
+      <span style="min-width:22px;text-align:right;color:var(--muted)">${v}</span>
+    </div>`).join('');
+
+  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+  const vals   = [12,18,15,22,28,35,30,42,38,48,55,62];
+  const maxV   = Math.max(...vals);
+  document.getElementById('trend-chart').innerHTML = months.map((m,i) =>
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+      <div style="width:100%;background:var(--red);border-radius:3px 3px 0 0;height:${Math.round(vals[i]/maxV*80)}px;opacity:0.85"></div>
+      <span style="font-size:9px;color:var(--muted)">${m}</span>
+    </div>`).join('');
+}
+
+function logout() { clearSession(); location.href = '../login.html'; }
+loadOverview();
+// Auto-refresh stats and alerts
+setInterval(loadOverview, 15000);
+</script>
+</body>
+</html>

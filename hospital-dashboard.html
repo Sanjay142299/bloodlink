@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hospital Dashboard – BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+<style>
+.bg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px;}
+.bg-cell{background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.15s;}
+.bg-cell:hover,.bg-cell.selected{background:var(--red);border-color:var(--red);color:#fff;}
+.bg-cell .bg-type{font-size:18px;font-weight:800;}
+.bg-cell .bg-count{font-size:10px;opacity:0.7;}
+.req-row{display:grid;grid-template-columns:60px 1fr 60px 90px 110px;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;background:var(--white);font-size:12px;}
+.req-head{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);padding:6px 12px;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-logo" href="../index.html">Blood<span>Link</span></a>
+  <div class="nav-links">
+    <span id="nav-name" style="font-size:13px;color:var(--muted);margin-right:6px"></span>
+    <span class="badge badge-blue" style="margin-right:6px">Hospital</span>
+    <button class="nav-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="app-layout">
+  <div class="sidebar">
+    <button class="sidebar-item active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+    <button class="sidebar-item" onclick="switchTab('request',this)">🩸 Request Blood</button>
+    <button class="sidebar-item" onclick="switchTab('my-requests',this)">📋 My Requests</button>
+    <button class="sidebar-item" onclick="switchTab('profile',this)">🏥 Hospital Profile</button>
+    <button class="sidebar-item" onclick="location.href='../map.html'">🗺️ Donor Map</button>
+  </div>
+
+  <div class="main-content">
+    <!-- DASHBOARD -->
+    <div class="section" id="tab-dashboard">
+      <div class="section-header">
+        <div class="section-title" id="hosp-title">Hospital Dashboard</div>
+        <div class="section-sub">Manage blood requests and monitor donor network</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:#e8192c"><div class="val" id="s-open">0</div><div class="lbl">Open Requests</div></div>
+        <div class="stat-card" style="--accent:#16a34a"><div class="val" id="s-notified">0</div><div class="lbl">Donors Notified</div></div>
+        <div class="stat-card" style="--accent:#2563eb"><div class="val" id="s-fulfilled">0</div><div class="lbl">Fulfilled</div></div>
+        <div class="stat-card" style="--accent:#d97706"><div class="val" id="s-pending">–</div><div class="lbl">Verification</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Recent Requests</div>
+          <div class="req-row req-head"><span>Group</span><span>Patient</span><span>Units</span><span>Urgency</span><span>Status</span></div>
+          <div id="req-table-body">
+            <div class="empty-state"><div class="icon">📋</div><p>No requests yet.</p></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title"><span class="dot" style="background:var(--amber)"></span> Match Alerts 🔔</div>
+            <div id="match-alerts" style="max-height: 200px; overflow-y: auto;">
+              <div class="empty-state" style="padding:10px"><p style="font-size:12px">No match alerts yet.</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot" style="background:var(--blue)"></span> Verification Status</div>
+            <div id="verif-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REQUEST BLOOD -->
+    <div class="section" id="tab-request" style="display:none">
+      <div class="section-header">
+        <div class="section-title">Request Blood</div>
+        <div class="section-sub">Submit a request — matching donors are notified instantly via SMS + push</div>
+      </div>
+      <div class="grid-half">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Select Blood Group</div>
+          <div class="bg-grid" id="bg-selector"></div>
+          <div class="form-grid">
+            <div class="form-group"><label>Patient Name</label><input id="req-patient" placeholder="Full name"/></div>
+            <div class="form-group"><label>Ward / Department</label><input id="req-ward" placeholder="ICU, Surgery…"/></div>
+            <div class="form-group"><label>Units Needed</label><input id="req-units" type="number" min="1" max="10" value="2"/></div>
+            <div class="form-group"><label>Urgency</label>
+              <select id="req-urgency">
+                <option value="critical">🔴 Critical – Within 1 hr</option>
+                <option value="high">🟡 High – Within 4 hrs</option>
+                <option value="normal">🟢 Normal – Within 24 hrs</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Notes / Special Requirements</label><textarea id="req-notes" rows="2" placeholder="CMV negative, irradiated…"></textarea></div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="submitRequest()">🩸 Submit & Notify Donors</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--green)"></span> Matched Donors Preview <span id="match-count" style="margin-left:auto;font-size:12px;color:var(--muted)">Select a blood group</span></div>
+          <div id="matched-donors">
+            <div class="empty-state"><div class="icon">🔍</div><p>Select a blood group to preview eligible donors.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY REQUESTS -->
+    <div class="section" id="tab-my-requests" style="display:none">
+      <div class="section-header"><div class="section-title">My Blood Requests</div></div>
+      <div id="my-req-list">
+        <div class="empty-state"><div class="icon">📋</div><p>No requests submitted yet.</p></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="section" id="tab-profile" style="display:none">
+      <div class="section-header"><div class="section-title">Hospital Profile</div></div>
+      <div class="card" style="max-width:500px">
+        <div class="form-group"><label>Hospital Name</label><input id="p-name"/></div>
+        <div class="form-group"><label>Contact Number</label><input id="p-contact"/></div>
+        <div class="form-group"><label>Address</label><input id="p-address"/></div>
+        <div class="form-group"><label>City</label><input id="p-city"/></div>
+        <button class="btn btn-primary btn-full" onclick="saveProfile()">Save Profile</button>
+        <button class="btn btn-outline btn-full" style="margin-top:10px" onclick="updateLocation()">📍 Update GPS Location</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/api.js"></script>
+<script>
+if (!isLoggedIn() || getRole() !== 'hospital') location.href = '../login.html';
+const hospital = getUser();
+document.getElementById('nav-name').textContent = hospital?.name || '';
+document.getElementById('hosp-title').textContent = (hospital?.name || 'Hospital') + ' Dashboard';
+
+const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+let selectedBG = '';
+let lat = hospital?.latitude || 10.7905;
+let lon = hospital?.longitude || 78.7047;
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section[id^="tab-"]').forEach(s => s.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'my-requests') loadMyRequests();
+  if (tab === 'request')     renderBGSelector();
+  if (tab === 'profile')     renderProfile();
+}
+
+// ── Dashboard ──────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const reqs = await HospitalAPI.getMyRequests();
+    document.getElementById('s-open').textContent      = reqs.filter(r => r.status === 'open').length;
+    document.getElementById('s-fulfilled').textContent = reqs.filter(r => r.status === 'fulfilled').length;
+    document.getElementById('s-notified').textContent  = reqs.length * 3; // estimate
+    document.getElementById('s-pending').textContent   = hospital?.verification_status || 'pending';
+
+    renderReqTable(reqs.slice(0,5));
+    renderVerifStatus();
+    renderQuickNotify();
+    loadNotifications();
+  } catch(_) {}
+}
+
+async function loadNotifications() {
+  try {
+    const alerts = await HospitalAPI.getNotifications();
+    const el = document.getElementById('match-alerts');
+    if (!alerts.length) { el.innerHTML = '<div class="empty-state" style="padding:10px"><p style="font-size:12px">No match alerts yet.</p></div>'; return; }
+    el.innerHTML = alerts.map(a => {
+      const isAccepted = a.notification_type === 'donor_matched' || a.message.includes('accepted');
+      return `
+      <div style="padding:10px; border-bottom:1px solid var(--border); font-size:12px;">
+        <div style="font-weight:700; color:${isAccepted ? 'var(--green)' : 'var(--blue)'}; margin-bottom:2px;">
+          ${isAccepted ? '✅ Blood Donor Accepted' : '✅ Blood Request Matched'}
+        </div>
+        <div style="color:var(--text); line-height:1.4;">${a.message}</div>
+        <div style="font-size:10px; color:var(--muted); margin-top:4px;">${new Date(a.createdAt).toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Failed to load notifications', e); }
+}
+
+function renderReqTable(reqs) {
+  const el = document.getElementById('req-table-body');
+  if (!reqs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No requests yet.</p></div>'; return; }
+  el.innerHTML = reqs.map(r => `
+    <div class="req-row">
+      <span style="font-weight:800;color:var(--red)">${r.blood_group}</span>
+      <span>${r.patient_name || '–'}</span>
+      <span style="color:var(--muted)">${r.units_needed}u</span>
+      <span class="badge ${r.urgency_level === 'critical' ? 'badge-red' : r.urgency_level === 'high' ? 'badge-amber' : 'badge-green'}" style="font-size:9px">${r.urgency_level}</span>
+      <span class="badge ${r.status === 'fulfilled' ? 'badge-green' : r.status === 'open' ? 'badge-blue' : 'badge-gray'}">${r.status}</span>
+    </div>`).join('');
+}
+
+function renderVerifStatus() {
+  const status = hospital?.verification_status || 'pending';
+  const map    = { pending: ['badge-amber','⏳ Pending admin approval'], approved: ['badge-green','✅ Verified & Active'], rejected: ['badge-red','❌ Verification rejected'] };
+  const [cls, txt] = map[status] || map.pending;
+  document.getElementById('verif-status').innerHTML = `<span class="badge ${cls}" style="padding:10px;border-radius:10px;font-size:13px">${txt}</span>`;
+}
+
+function renderQuickNotify() {
+  document.getElementById('quick-notify-grid').innerHTML = bloodGroups.map(bg =>
+    `<div class="bg-cell" onclick="quickNotify('${bg}')">
+      <div class="bg-type">${bg}</div>
+      <div class="bg-count">Notify</div>
+    </div>`).join('');
+}
+
+async function quickNotify(bg) {
+  showToast(`📲 Notifying ${bg} donors...`, 'info');
+}
+
+// ── Blood Group Selector ─────────────────────────────
+function renderBGSelector() {
+  document.getElementById('bg-selector').innerHTML = bloodGroups.map(bg =>
+    `<div class="bg-cell ${selectedBG === bg ? 'selected' : ''}" onclick="selectBG(this,'${bg}')">
+      <div class="bg-type">${bg}</div>
+    </div>`).join('');
+}
+
+async function selectBG(el, bg) {
+  document.querySelectorAll('#bg-selector .bg-cell').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedBG = bg;
+  // Preview matched donors
+  try {
+    const res = await RequestAPI.matchPreview({ blood_group: bg, latitude: lat, longitude: lon });
+    const el2 = document.getElementById('matched-donors');
+    const cnt  = document.getElementById('match-count');
+    cnt.textContent = res.count + ' eligible donor(s)';
+    cnt.style.color = res.count > 0 ? 'var(--green)' : 'var(--red)';
+    if (!res.count) { el2.innerHTML = '<div class="empty-state"><div class="icon">😔</div><p>No eligible donors for this blood group nearby.</p></div>'; return; }
+    el2.innerHTML = res.matched.slice(0,5).map(d => `
+      <div class="list-item">
+        <div class="blood-pill">${d.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${d.name}</div>
+          <div class="meta">📍 ${d.distance_km} km · AI score: ${d.ai_score}</div>
+        </div>
+        <span class="badge badge-green">Eligible</span>
+      </div>`).join('');
+  } catch(_) {}
+}
+
+async function submitRequest() {
+  if (!selectedBG) { showToast('Select a blood group first', 'error'); return; }
+  const patient = document.getElementById('req-patient').value.trim();
+  if (!patient)  { showToast('Enter patient name', 'error'); return; }
+
+  const btn = document.querySelector('#tab-request .btn-primary');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+
+  try {
+    const pos = await getCurrentPosition().catch(() => ({ coords: { latitude: lat, longitude: lon } }));
+    const res = await RequestAPI.submit({
+      blood_group:   selectedBG,
+      patient_name:  patient,
+      units_needed:  parseInt(document.getElementById('req-units').value) || 2,
+      urgency_level: document.getElementById('req-urgency').value,
+      notes:         document.getElementById('req-notes').value,
+      address:       hospital?.name || 'Hospital',
+      latitude:      pos.coords.latitude,
+      longitude:     pos.coords.longitude,
+    });
+    showToast(`✅ Request submitted! ${res.matched_donors} donor(s) notified.`, 'success');
+    selectedBG = '';
+    ['req-patient','req-ward','req-notes'].forEach(id => document.getElementById(id).value = '');
+    loadDashboard();
+  } catch(e) { showToast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = '🩸 Submit & Notify Donors';
+}
+
+async function loadMyRequests() {
+  try {
+    const reqs = await HospitalAPI.getMyRequests();
+    const el = document.getElementById('my-req-list');
+    if (!reqs.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No requests yet.</p></div>'; return; }
+    el.innerHTML = reqs.map(r => `
+      <div class="list-item">
+        <div class="blood-pill">${r.blood_group}</div>
+        <div class="item-info">
+          <div class="name">${r.patient_name || '–'} · ${r.units_needed} unit(s)</div>
+          <div class="meta">📅 ${r.created_at?.slice(0,16)} · Urgency: ${r.urgency_level}</div>
+        </div>
+        <span class="badge ${r.status === 'fulfilled' ? 'badge-green' : r.status === 'open' ? 'badge-blue' : 'badge-gray'}">${r.status}</span>
+      </div>`).join('');
+  } catch(_) {}
+}
+
+function renderProfile() {
+  const h = getUser() || {};
+  document.getElementById('p-name').value    = h.name || '';
+  document.getElementById('p-contact').value = h.contact_number || '';
+  document.getElementById('p-address').value = h.address || '';
+  document.getElementById('p-city').value    = h.city || '';
+}
+
+async function saveProfile() {
+  try {
+    await HospitalAPI.updateProfile({ name: document.getElementById('p-name').value, contact_number: document.getElementById('p-contact').value, address: document.getElementById('p-address').value, city: document.getElementById('p-city').value });
+    showToast('Profile updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function updateLocation() {
+  try {
+    const pos = await getCurrentPosition();
+    lat = pos.coords.latitude; lon = pos.coords.longitude;
+    await HospitalAPI.updateProfile({ latitude: lat, longitude: lon });
+    showToast('📍 Location updated!', 'success');
+  } catch(e) { showToast('Enable GPS and try again', 'error'); }
+}
+
+function logout() { clearSession(); location.href = '../login.html'; }
+loadDashboard();
+// Auto-refresh match alerts every 10 seconds
+setInterval(loadNotifications, 10000);
+</script>
+</body>
+</html>

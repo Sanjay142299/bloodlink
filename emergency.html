@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Emergency Request | BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<style>
+:root {
+  --primary: #e8192c;
+  --bg-gradient: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+  --shadow: 0 12px 40px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-gradient);
+  color: #1a1a1a;
+}
+
+.sos-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 40px 20px;
+  text-align: center;
+  margin-bottom: -60px;
+}
+
+.sos-header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+
+.sos-wrap {
+  max-width: 600px;
+  margin: 0 auto 60px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.step-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+  border: 1px solid rgba(232, 25, 44, 0.05);
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: all 0.3s;
+}
+
+.dot.active {
+  width: 30px;
+  border-radius: 10px;
+  background: var(--primary);
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #4b5563;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(232, 25, 44, 0.1);
+  outline: none;
+}
+
+.btn-sos {
+  background: var(--primary);
+  color: #fff;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 8px 20px rgba(232, 25, 44, 0.2);
+}
+
+.btn-sos:active { transform: scale(0.98); }
+
+.otp-inputs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 32px 0;
+}
+
+.otp-inputs input {
+  width: 50px;
+  height: 64px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.bg-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.bg-btn {
+  padding: 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.bg-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.panel { display: none; }
+.panel.active { display: block; animation: slideUp 0.4s ease-out; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.debug-box {
+  margin-top: 20px;
+  padding: 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #92400e;
+}
+</style>
+</head>
+
+<body>
+
+<nav class="navbar" style="background: transparent; border: none;">
+  <div style="max-width: 1200px; margin: 0 auto; width: 100%; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <a class="nav-logo" href="index.html" style="color: #fff;">Blood<span style="color: #fff; opacity: 0.8;">Link</span></a>
+    <a href="index.html" style="color: #fff; font-weight: 600; font-size: 14px;">← Back Home</a>
+  </div>
+</nav>
+
+<div class="sos-header">
+  <h1>🚨 Emergency Access</h1>
+  <p>Verify your identity to notify matching donors instantly.</p>
+</div>
+
+<div class="sos-wrap">
+  <div class="step-card">
+    <div class="step-indicator">
+      <div class="dot active" id="dot1"></div>
+      <div class="dot" id="dot2"></div>
+      <div class="dot" id="dot3"></div>
+    </div>
+
+    <!-- Step 1: Login -->
+    <div class="panel active" id="step1">
+      <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Verify Mobile</h2>
+      <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">Enter your details to receive a 6-digit OTP via Fast2SMS.</p>
+      
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label>Your Name</label>
+        <input type="text" id="e-name" placeholder="Enter your full name"/>
+      </div>
+      <div class="form-group">
+        <label>Mobile Number</label>
+        <input type="tel" id="e-mobile" placeholder="10-digit mobile number"/>
+      </div>
+
+      <button class="btn-sos" id="otp-btn" onclick="sendOTP()">Send Verification Code</button>
+      
+      <div class="debug-box" style="display: none;" id="sms-debug">
+        <strong>💡 Note:</strong> If you don't receive the SMS within 60s, check your Fast2SMS API balance or DLT status.
+      </div>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div class="panel" id="step2">
+      <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Enter OTP</h2>
+      <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">We've sent a code to <strong id="phone-display"></strong></p>
+      
+      <div id="demo-otp-display" style="display:none; background: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: center;">
+        <span style="color: #854d0e; font-size: 13px; font-weight: 600;">🧪 DEMO OTP: </span>
+        <strong id="demo-otp-val" style="color: #e8192c; font-size: 18px; letter-spacing: 2px;"></strong>
+      </div>
+      
+      <div class="otp-inputs">
+        <input type="number" id="otp0" oninput="moveNext(0)" maxlength="1"/>
+        <input type="number" id="otp1" oninput="moveNext(1)" maxlength="1"/>
+        <input type="number" id="otp2" oninput="moveNext(2)" maxlength="1"/>
+        <input type="number" id="otp3" oninput="moveNext(3)" maxlength="1"/>
+        <input type="number" id="otp4" oninput="moveNext(4)" maxlength="1"/>
+        <input type="number" id="otp5" oninput="moveNext(5)" maxlength="1"/>
+      </div>
+
+      <button class="btn-sos" onclick="verifyOTP()">Verify & Continue</button>
+      <button style="width: 100%; background: none; border: none; color: #4b5563; font-weight: 600; margin-top: 16px; cursor: pointer;" onclick="sendOTP()">Resend Code</button>
+    </div>
+
+    <!-- Step 3: Request -->
+    <div class="panel" id="step3">
+      <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 20px;">Request Details</h2>
+      
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label>Blood Group Needed</label>
+        <div class="bg-grid">
+          <div class="bg-btn" onclick="selectBG(this, 'A+')">A+</div>
+          <div class="bg-btn" onclick="selectBG(this, 'A-')">A-</div>
+          <div class="bg-btn" onclick="selectBG(this, 'B+')">B+</div>
+          <div class="bg-btn" onclick="selectBG(this, 'B-')">B-</div>
+          <div class="bg-btn" onclick="selectBG(this, 'O+')">O+</div>
+          <div class="bg-btn" onclick="selectBG(this, 'O-')">O-</div>
+          <div class="bg-btn" onclick="selectBG(this, 'AB+')">AB+</div>
+          <div class="bg-btn" onclick="selectBG(this, 'AB-')">AB-</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label>Patient Name</label>
+        <input type="text" id="req-patient" placeholder="Name of person needing blood"/>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div class="form-group">
+          <label>Units Needed</label>
+          <input type="number" id="req-units" value="1" min="1"/>
+        </div>
+        <div class="form-group">
+          <label>Urgency</label>
+          <select id="req-urgency">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Hospital Address</label>
+        <textarea id="req-address" rows="3" placeholder="Full address of the hospital"></textarea>
+      </div>
+
+      <button class="btn-sos" onclick="submitRequest()">🚀 Notify Matching Donors</button>
+    </div>
+
+    <!-- Final Success -->
+    <div class="panel" id="step4" style="text-align: center;">
+      <div style="font-size: 64px; margin-bottom: 20px;">🎉</div>
+      <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 12px;">Request Sent!</h2>
+      <p style="color: #6b7280; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+        We've notified matching donors in your area via SMS. You will receive an SMS alert as soon as someone accepts.
+      </p>
+      <div id="summary-box" style="background: #f9fafb; border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 24px;"></div>
+      <a href="map.html" class="btn-sos" style="display: block; text-decoration: none;">View Live Network Map</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="js/api.js"></script>
+<script>
+let selectedBG = '', lat = 10.79, lon = 78.7;
+
+// GPS
+navigator.geolocation?.getCurrentPosition(p => { lat = p.coords.latitude; lon = p.coords.longitude; });
+
+function selectBG(el, bg) {
+  document.querySelectorAll('.bg-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedBG = bg;
+}
+
+function moveNext(idx) {
+  const el = document.getElementById('otp'+idx);
+  if (el.value && idx < 5) document.getElementById('otp'+(idx+1)).focus();
+  if (idx === 5) verifyOTP();
+}
+
+function showPanel(n) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i < n));
+}
+
+async function sendOTP() {
+  const name = document.getElementById('e-name').value;
+  const mobile = document.getElementById('e-mobile').value;
+  if (!name || !mobile) return showToast('Please fill all fields', 'error');
+
+  const btn = document.getElementById('otp-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+
+  try {
+    const res = await Auth.sendOTP({ name, mobile_number: mobile });
+    document.getElementById('phone-display').textContent = mobile;
+    
+    // Show demo OTP if returned
+    if (res.otp) {
+      document.getElementById('demo-otp-display').style.display = 'block';
+      document.getElementById('demo-otp-val').textContent = res.otp;
+    }
+
+    showPanel(2);
+    showToast('[DEMO] OTP generated successfully!', 'success');
+  } catch(e) {
+    showToast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Send Verification Code';
+    document.getElementById('sms-debug').style.display = 'block';
+  }
+}
+
+async function verifyOTP() {
+  const otp = [0,1,2,3,4,5].map(i => document.getElementById('otp'+i).value).join('');
+  const mobile = document.getElementById('e-mobile').value;
+  if (otp.length < 6) return;
+
+  try {
+    const res = await Auth.verifyOTP({ mobile_number: mobile, otp });
+    saveSession(res.token, 'emergency', res.user);
+    showPanel(3);
+    showToast('Identity verified!', 'success');
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function submitRequest() {
+  if (!selectedBG) return showToast('Select blood group', 'error');
+  const patient = document.getElementById('req-patient').value;
+  const address = document.getElementById('req-address').value;
+  if (!patient || !address) return showToast('Fill all required fields', 'error');
+
+  try {
+    const res = await RequestAPI.submit({
+      blood_group: selectedBG,
+      patient_name: patient,
+      units_needed: document.getElementById('req-units').value,
+      urgency_level: document.getElementById('req-urgency').value,
+      address,
+      latitude: lat,
+      longitude: lon
+    });
+
+    document.getElementById('summary-box').innerHTML = `
+      <div style="font-weight: 700; font-size: 16px; margin-bottom: 12px; color: var(--primary);">🚑 Matching Donors Found: ${res.matched_donors}</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        ${res.top_matches && res.top_matches.length > 0 ? res.top_matches.map(d => `
+          <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">${d.name} <span class="badge badge-red" style="font-size:10px; margin-left:5px;">${d.blood_group}</span></div>
+              <div style="font-size: 11px; color: #6b7280; margin-top:2px;">ID: ${d.id} | 📍 ${d.distance_km} km away</div>
+            </div>
+            <a href="tel:${d.mobile_number}" style="background: #16a34a; color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none;">📞 Call Now</a>
+          </div>
+        `).join('') : '<p style="font-size: 13px; color: #6b7280;">Searching for more donors... You will be notified via SMS as soon as someone accepts.</p>'}
+      </div>
+      <div style="margin-top: 16px; font-size: 12px; color: #4b5563; border-top: 1px solid #eee; padding-top: 12px;">
+        <strong>Note:</strong> We have notified all matching donors in your area via SMS.
+      </div>
+    `;
+    showPanel(4);
+    showToast('Emergency request broadcasted!', 'success');
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Donor Map – BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+html,body{height:100%;margin:0;padding:0;}
+.map-controls{padding:10px 20px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;flex-wrap:wrap;z-index:10;position:relative;}
+.filter-btn{padding:5px 12px;border-radius:20px;border:1.5px solid #e5e7eb;background:#fff;cursor:pointer;font-size:12px;font-weight:500;color:#6b7280;transition:all 0.15s;font-family:inherit;}
+.filter-btn:hover,.filter-btn.active{background:#e8192c;border-color:#e8192c;color:#fff;}
+#map{width:100%;height:calc(100vh - 115px);}
+.map-legend{position:absolute;bottom:30px;right:14px;z-index:1000;background:rgba(255,255,255,0.97);border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;font-size:12px;box-shadow:0 2px 12px rgba(0,0,0,0.12);}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.leg-row:last-child{margin-bottom:0;}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.donor-count{margin-left:auto;font-size:12px;color:#6b7280;font-weight:500;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="nav-logo" href="index.html">Blood<span>Link</span></a>
+  <div class="nav-links">
+    <a class="nav-btn" href="login.html">Login</a>
+    <a class="nav-btn primary" href="emergency.html">🚨 Emergency</a>
+  </div>
+</nav>
+
+<div class="map-controls">
+  <strong style="font-size:13px;white-space:nowrap">Filter:</strong>
+  <button class="filter-btn active" onclick="filterDonors('',this)">All</button>
+  <button class="filter-btn" onclick="filterDonors('O-',this)">O-</button>
+  <button class="filter-btn" onclick="filterDonors('O+',this)">O+</button>
+  <button class="filter-btn" onclick="filterDonors('A+',this)">A+</button>
+  <button class="filter-btn" onclick="filterDonors('A-',this)">A-</button>
+  <button class="filter-btn" onclick="filterDonors('B+',this)">B+</button>
+  <button class="filter-btn" onclick="filterDonors('B-',this)">B-</button>
+  <button class="filter-btn" onclick="filterDonors('AB+',this)">AB+</button>
+  <button class="filter-btn" onclick="filterDonors('AB-',this)">AB-</button>
+  <span class="donor-count" id="donor-count">Loading...</span>
+</div>
+
+<div style="position:relative">
+  <div id="map"></div>
+  <div class="map-legend">
+    <div class="leg-row"><div class="leg-dot" style="background:#16a34a"></div>Available Donor</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#2563eb"></div>Hospital</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#e8192c"></div>Active Request</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#d97706"></div>Your Location</div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/api.js"></script>
+<script>
+// ── Init map ──────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView([10.7905, 78.7047], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+// ── Icon factory ──────────────────────────────────────────
+function makeIcon(color, text, size=36) {
+  return L.divIcon({
+    html: `<div style="
+      background:${color};
+      width:${size}px;height:${size}px;
+      border-radius:50%;
+      border:3px solid #fff;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:${size<=30?9:11}px;font-weight:800;color:#fff;
+      font-family:'DM Sans',sans-serif;
+    ">${text}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2],
+    className: ''
+  });
+}
+
+let allDonors = [], donorMarkers = [], hospitalMarkers = [], requestMarkers = [];
+let userCircle = null, userMarker = null;
+
+// ── Load hospitals ────────────────────────────────────────
+async function loadHospitals() {
+  try {
+    const hospitals = await HospitalAPI.getAll();
+    hospitals.forEach(h => {
+      if (!h.latitude || !h.longitude) return;
+      const m = L.marker([h.latitude, h.longitude], { icon: makeIcon('#2563eb','🏥',34) })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family:'DM Sans',sans-serif;min-width:160px">
+            <div style="font-weight:700;font-size:14px;color:#2563eb;margin-bottom:4px">🏥 Hospital</div>
+            <div style="font-weight:600;font-size:13px">${h.name}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:3px">📞 ${h.contact_number||'–'}</div>
+            <div style="font-size:12px;color:#6b7280">📍 ${h.city||'–'}</div>
+          </div>`);
+      hospitalMarkers.push(m);
+    });
+  } catch(e) {
+    // Backend not running — show demo hospital
+    L.marker([10.7905, 78.7047], { icon: makeIcon('#2563eb','🏥',34) })
+      .addTo(map)
+      .bindPopup('<div style="font-family:sans-serif"><b style="color:#2563eb">City Blood Bank Hospital</b><br>Demo location</div>');
+  }
+}
+
+// ── Load blood requests ───────────────────────────────────
+async function loadRequests() {
+  try {
+    const reqs = await RequestAPI.getAll();
+    requestMarkers.forEach(m => map.removeLayer(m));
+    requestMarkers = [];
+    reqs.filter(r => r.status !== 'fulfilled' && r.latitude).forEach(r => {
+      const m = L.marker([r.latitude, r.longitude], { icon: makeIcon('#e8192c', r.blood_group, 34) })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family:'DM Sans',sans-serif;min-width:160px">
+            <div style="font-weight:700;font-size:14px;color:#e8192c;margin-bottom:4px">🩸 Blood Request</div>
+            <div style="font-size:13px"><b>Group:</b> ${r.blood_group} · ${r.units_needed} unit(s)</div>
+            <div style="font-size:12px;color:#6b7280"><b>Patient:</b> ${r.patient_name||'Unknown'}</div>
+            <div style="font-size:12px;color:#6b7280">📍 ${r.address||'–'}</div>
+            <div style="margin-top:6px"><span style="background:${r.urgency_level==='critical'?'#fee2e2':r.urgency_level==='high'?'#fef3c7':'#dcfce7'};color:${r.urgency_level==='critical'?'#b91c1c':r.urgency_level==='high'?'#92400e':'#166534'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">${r.urgency_level.toUpperCase()}</span></div>
+          </div>`);
+      requestMarkers.push(m);
+    });
+  } catch(_) {}
+}
+
+// ── Load & render donors ──────────────────────────────────
+async function loadDonors() {
+  try {
+    allDonors = await DonorAPI.getMapDonors();
+  } catch {
+    // Demo fallback
+    allDonors = [
+      { id:1, name:'Arjun Selvam',   blood_group:'O-', latitude:10.793, longitude:78.708, city:'Trichy' },
+      { id:2, name:'Meena R',        blood_group:'A+', latitude:10.862, longitude:78.693, city:'Srirangam' },
+      { id:3, name:'Karthick M',     blood_group:'B+', latitude:10.775, longitude:78.718, city:'Trichy' },
+      { id:4, name:'Priya D',        blood_group:'O+', latitude:10.800, longitude:78.685, city:'Trichy' },
+      { id:5, name:'Suresh B',       blood_group:'AB+',latitude:10.820, longitude:78.730, city:'Trichy' },
+    ];
+    showToast('Showing demo donors (backend not connected)', 'info');
+  }
+  renderDonors('');
+}
+
+function renderDonors(filter) {
+  donorMarkers.forEach(m => map.removeLayer(m));
+  donorMarkers = [];
+  const list = filter ? allDonors.filter(d => d.blood_group === filter) : allDonors;
+  document.getElementById('donor-count').textContent = list.length + ' donor(s) shown';
+  list.forEach(d => {
+    if (!d.latitude || !d.longitude) return;
+    const m = L.marker([d.latitude, d.longitude], { icon: makeIcon('#16a34a', d.blood_group, 36) })
+      .addTo(map)
+      .bindPopup(`
+        <div style="font-family:'DM Sans',sans-serif;min-width:150px">
+          <div style="font-weight:800;font-size:16px;color:#e8192c">${d.blood_group}</div>
+          <div style="font-weight:600;font-size:13px;margin:4px 0">${d.name}</div>
+          <div style="font-size:12px;color:#6b7280">📍 ${d.city||'Trichy'}</div>
+          <div style="font-size:11px;color:#16a34a;margin-top:5px;font-weight:600">✅ Available to donate</div>
+        </div>`);
+    donorMarkers.push(m);
+  });
+}
+
+function filterDonors(bg, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDonors(bg);
+}
+
+// ── Auto-refresh & location-based notifications ───────────
+let lastRequestCount = 0;
+let userLat = null, userLon = null;
+
+async function checkNearbyRequests() {
+  try {
+    const reqs = await RequestAPI.getAll();
+    const openReqs = reqs.filter(r => r.status !== 'fulfilled' && r.latitude);
+    
+    // Check for new requests
+    if (lastRequestCount > 0 && openReqs.length > lastRequestCount) {
+      const newReqs = openReqs.length - lastRequestCount;
+      showToast(`🩸 ${newReqs} new blood request(s) in your area!`, 'success');
+    }
+    lastRequestCount = openReqs.length;
+    
+    // If user has location, check for nearby requests
+    if (userLat && userLon) {
+      openReqs.forEach(r => {
+        const dist = getDistance(userLat, userLon, r.latitude, r.longitude);
+        if (dist <= 10) { // Within 10km
+          showToast(`🩸 Urgent: ${r.blood_group} blood needed ${Math.round(dist)}km away!`, 'error');
+        }
+      });
+    }
+  } catch(e) { console.error('Check requests error:', e); }
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Get user location
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(p => {
+    userLat = p.coords.latitude;
+    userLon = p.coords.longitude;
+    map.setView([userLat, userLon], 12);
+    
+    // Add user marker
+    userMarker = L.marker([userLat, userLon], { icon: makeIcon('#d97706','📍',30) })
+      .addTo(map)
+      .bindPopup('<div style="font-family:sans-serif"><b>Your Location</b><br>You are here</div>');
+    
+    // Add circle
+    userCircle = L.circle([userLat, userLon], {
+      radius: 5000,
+      color: '#d97706',
+      fillColor: '#d97706',
+      fillOpacity: 0.1
+    }).addTo(map);
+    
+    // Check nearby requests on load
+    checkNearbyRequests();
+  }, () => {
+    console.log('Location access denied');
+  });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => { loadDonors(); loadRequests(); checkNearbyRequests(); }, 30000);
+
+// ── User GPS ──────────────────────────────────────────────
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      if (userMarker) map.removeLayer(userMarker);
+      if (userCircle) map.removeLayer(userCircle);
+      userMarker = L.marker([lat, lon], { icon: makeIcon('#d97706','📍',34) })
+        .addTo(map)
+        .bindPopup('<div style="font-family:sans-serif"><b>📍 Your Location</b></div>')
+        .openPopup();
+      userCircle = L.circle([lat, lon], {
+        radius: 20000,
+        color: '#e8192c',
+        fillColor: '#e8192c',
+        fillOpacity: 0.04,
+        weight: 1.5,
+        dashArray: '6,4'
+      }).addTo(map);
+      map.setView([lat, lon], 13);
+    },
+    () => { showToast('Enable location access for GPS tracking','info'); }
+  );
+}
+
+// ── Init ──────────────────────────────────────────────────
+loadHospitals();
+loadDonors();
+loadRequests();
+setInterval(loadRequests, 30000); // refresh requests every 30s
+</script>
+</body>
+</html>

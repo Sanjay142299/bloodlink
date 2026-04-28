@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BloodLink | Smart Blood Donation Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<style>
+:root {
+  --primary: #e8192c;
+  --primary-hover: #c71525;
+  --bg-gradient: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+  --glass: rgba(255, 255, 255, 0.85);
+  --shadow: 0 12px 40px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-gradient);
+  color: #1a1a1a;
+  overflow-x: hidden;
+}
+
+/* Glass Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 16px 40px;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+}
+
+.nav-logo span { color: var(--primary); }
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+
+.nav-links a {
+  font-weight: 500;
+  font-size: 15px;
+  color: #4b5563;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+
+.nav-links a:hover { color: var(--primary); }
+
+.nav-links .primary {
+  background: var(--primary);
+  color: #fff !important;
+  padding: 10px 22px;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(232, 25, 44, 0.25);
+}
+
+/* Hero Section */
+.hero {
+  padding: 120px 20px 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+}
+
+.hero h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  letter-spacing: -2px;
+}
+
+.hero h1 span {
+  background: linear-gradient(90deg, var(--primary), #ff4d4d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+  font-size: 20px;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-large {
+  padding: 16px 36px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(232, 25, 44, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(232, 25, 44, 0.4);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* SOS Strip */
+.sos-strip {
+  background: #000;
+  color: #fff;
+  padding: 14px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.sos-strip a {
+  color: #ff4d4d;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Features */
+.features {
+  padding: 100px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-tag {
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 42px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+}
+
+.feature-card {
+  background: #fff;
+  padding: 40px;
+  border-radius: 24px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: var(--shadow);
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+}
+
+.feature-icon {
+  width: 56px;
+  height: 56px;
+  background: #fff0f1;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 24px;
+}
+
+.feature-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.feature-card p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+/* Stats */
+.stats-bar {
+  background: #1a1a1a;
+  padding: 60px 20px;
+  margin-top: 40px;
+}
+
+.stats-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  text-align: center;
+}
+
+.stat-item h4 {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.stat-item p {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar { padding: 16px 20px; }
+  .nav-links { gap: 12px; }
+  .nav-links a:not(.primary) { display: none; } /* Hide non-primary links on mobile for simplicity */
+  .hero { padding: 80px 20px 60px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 40px; }
+  .hero-btns { flex-direction: column; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="sos-strip">
+  <span>🚨 URGENT: Smart matching active nearby. No login required for emergencies.</span>
+  <a href="emergency.html">Request Blood Now</a>
+</div>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a class="nav-logo" href="index.html">Blood<span>Link</span></a>
+    <div class="nav-links" id="nav-links">
+      <a href="map.html">Network Map</a>
+      <a href="login.html" id="auth-link">Login</a>
+      <a class="primary" href="pages/donor-register.html" id="cta-link">Join as Donor</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="section-tag">Next-Gen Blood Donation</span>
+  <h1>The Smart Way to <span>Save Lives</span></h1>
+  <p>Connecting patients with life-saving donors instantly through AI-powered matching and real-time GPS tracking.</p>
+
+  <div class="hero-btns">
+    <a href="emergency.html" class="btn-large btn-primary">🚨 Emergency Request</a>
+    <a href="map.html" class="btn-large btn-outline">Find Nearby Donors</a>
+  </div>
+</header>
+
+<section class="features">
+  <span class="section-tag">Why Choose Us?</span>
+  <h2 class="section-title">Built for Speed and Trust</h2>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Real-time Alerts</h3>
+      <p>Instant SMS and push notifications sent to matching donors within a 5km radius the moment you request.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI Verification</h3>
+      <p>Every donor is verified using computer vision AI to ensure ID authenticity and medical eligibility.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📍</div>
+      <h3>GPS Matching</h3>
+      <p>Smart geospatial matching connects you to donors currently available and closest to your hospital.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤝</div>
+      <h3>Direct Response</h3>
+      <p>Donors accept requests directly from their dashboard, triggering instant SMS updates to the requester.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <h3>Safe & Secure</h3>
+      <p>OTP-verified emergency access and JWT-protected medical data ensure total privacy and security.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎁</div>
+      <h3>Donor Rewards</h3>
+      <p>Earn reward points and life-saver badges for every successful donation and emergency response.</p>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat-item"><h4>12K+</h4><p>Verified Donors</p></div>
+    <div class="stat-item"><h4>850+</h4><p>Hospitals Linked</p></div>
+    <div class="stat-item"><h4>25K</h4><p>Lives Impacted</p></div>
+    <div class="stat-item"><h4>4m</h4><p>Avg Response Time</p></div>
+  </div>
+</div>
+
+<footer style="padding: 60px 20px; text-align: center; border-top: 1px solid rgba(0,0,0,0.05);">
+  <p style="color: #6b7280; font-size: 14px;">© 2026 BloodLink Network. Built with ❤️ for humanity.</p>
+</footer>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="js/api.js"></script>
+<script>
+// Dynamic Navbar State
+document.addEventListener('DOMContentLoaded', () => {
+  const authLink = document.getElementById('auth-link');
+  const ctaLink  = document.getElementById('cta-link');
+  
+  if (isLoggedIn()) {
+    const role = getRole();
+    const user = getUser();
+    
+    // Change Login to Dashboard
+    let dashboardUrl = 'login.html';
+    if (role === 'donor')    dashboardUrl = 'pages/donor-dashboard.html';
+    if (role === 'hospital') dashboardUrl = 'pages/hospital-dashboard.html';
+    if (role === 'admin')    dashboardUrl = 'pages/admin-dashboard.html';
+    
+    authLink.textContent = 'Dashboard';
+    authLink.href = dashboardUrl;
+    
+    // Change Register to Logout or Profile
+    ctaLink.textContent = 'Logout';
+    ctaLink.href = '#';
+    ctaLink.onclick = (e) => {
+      e.preventDefault();
+      clearSession();
+      location.reload();
+    };
+  }
+});
+</script>
+
+</body>
+</html>
